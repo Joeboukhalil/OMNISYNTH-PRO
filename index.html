@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OMNISYNTH PRO — Visual Sound Design Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace'],
+          },
+          colors: {
+            synth: {
+              950: '#06080d',
+              900: '#0c1018',
+              850: '#121824',
+              800: '#192232',
+              700: '#263349',
+              600: '#374866',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0c1018; }
+    ::-webkit-scrollbar-thumb { background: #263349; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #374866; }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+      touch-action: none;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 9999px;
+      background: #192232;
+      border: 1px solid #263349;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #38bdf8;
+      border: 2px solid #0c1018;
+      margin-top: -5.5px;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+      transition: transform 0.1s ease, background-color 0.1s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      background: #7dd3fc;
+    }
+    input[type="range"]:focus { outline: none; }
+
+    .interactive-pad {
+      touch-action: none;
+      cursor: crosshair;
+    }
+    .studio-card {
+      box-shadow: 0 12px 32px -18px rgba(0, 0, 0, 0.75);
+    }
+  </style>
+</head>
+<body class="bg-synth-950 text-slate-200 font-sans antialiased selection:bg-sky-500/30 selection:text-sky-200 min-h-screen flex flex-col">
+
+  <!-- Toast Container (Replaces alert) -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
+
+  <!-- Top Transport & Export Bar -->
+  <header class="sticky top-0 z-30 bg-synth-900/95 backdrop-blur-md border-b border-synth-800">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <!-- Brand + Honest Web Audio Synthesis Disclosure -->
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 via-indigo-500 to-fuchsia-500 p-[1px] shadow-lg shadow-sky-500/15 shrink-0">
+          <div class="w-full h-full rounded-[11px] bg-synth-950 flex items-center justify-center">
+            <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
+          </div>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 class="text-sm sm:text-base font-bold tracking-tight text-white">OMNISYNTH PRO</h1>
+            <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30">
+              Procedural Web Audio API
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400 truncate">
+            100% procedurally synthesized in-browser via Web Audio API (no samples or AI audio files).
+          </p>
+        </div>
+      </div>
+
+      <!-- Primary Action Buttons: Hear Sound, Loop, Download WAV -->
+      <div class="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto justify-end">
+        <button id="loopBtn" type="button" title="Toggle Continuous Loop"
+          class="px-3 py-2.5 rounded-xl border border-synth-700 bg-synth-850 hover:bg-synth-800 text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span id="loopLabel">Loop: Off</span>
+        </button>
+
+        <button id="hearSoundBtn" type="button"
+          class="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-400 to-cyan-400 hover:from-sky-300 hover:to-cyan-300 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-sky-500/25 transition active:scale-95">
+          <svg id="playSvg" class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg id="stopSvg" class="w-4 h-4 fill-current hidden" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+          <span id="hearSoundLabel">Hear Sound</span>
+        </button>
+
+        <button id="downloadWavBtn" type="button"
+          class="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 font-semibold text-sm flex items-center justify-center gap-2 transition active:scale-95">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3" />
+          </svg>
+          <span>Download WAV</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sound Character Macros Strip -->
+  <section class="bg-synth-900/60 border-b border-synth-800">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-2.5 flex items-center gap-2.5 overflow-x-auto">
+      <span class="text-[11px] font-mono uppercase tracking-wider text-slate-400 shrink-0 flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-fuchsia-400"></span>
+        Starting Macros:
+      </span>
+      <div id="macroStrip" class="flex items-center gap-2 shrink-0"></div>
+    </div>
+  </section>
+
+  <!-- Main Visual Studio Grid -->
+  <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-5 grid grid-cols-1 xl:grid-cols-12 gap-5">
+
+    <!-- COLUMN 1: Dual Oscillators + Custom Draw Pad (4 Cols on XL) -->
+    <section class="xl:col-span-4 flex flex-col gap-5">
+
+      <!-- Oscillator 1 Card -->
+      <div class="bg-synth-900 border border-synth-800 rounded-2xl p-4 studio-card flex flex-col gap-3.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-white">Oscillator 1 (Primary)</h2>
+          </div>
+          <span id="osc1HzBadge" class="text-[11px] font-mono text-sky-300 bg-synth-950 border border-synth-800 px-2 py-0.5 rounded-md">220.0 Hz</span>
+        </div>
+
+        <!-- Wave Shape Selector -->
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5" data-osc-group="1">
+          <button type="button" data-wave="sine" class="osc1-wave py-1.5 rounded-lg text-[11px] font-semibold border transition bg-sky-500/20 border-sky-400 text-sky-200">Sine</button>
+          <button type="button" data-wave="triangle" class="osc1-wave py-1.5 rounded-lg text-[11px] font-semibold border transition bg-synth-850 border-synth-700 text-slate-300 hover:bg-synth-800">Tri</button>
+          <button type="button" data-wave="sawtooth" class="osc1-wave py-1.5 rounded-lg text-[11px] font-semibold border transition bg-synth-850 border-synth-700 text-slate-300 hover:bg-synth-800">Saw</button>
+          <button type="button" data-wave="square" class="osc1-wave py-1.5 rounded-lg text-[11px] font-semibold border transition bg-synth-850 border-synth-700 text-slate-300 hover:bg-synth-800">Sq</button>
+          <button type="button" data-wave="pulse" class="osc1-wave py-1.5 rounded-lg text-[11px] font-semibold border transition bg-synth-850 border-synth-700 text-slate-300 hover:bg-synth-800">Pulse</button>
+          <button type="button" data-wave="custom" class="osc1-wave py-1.5 rounded-lg text-[11px] font-semibold border transition bg-synth-850 border-synth-700 text-slate-300 hover:bg-synth-800">Draw</button>
+        </div>
+
+        <!-- Level, Octave, Semi, Detune -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Level</span>
+              <span id="osc1LevelVal" class="font-mono text-sky-300">80%</span>
+            </div>
+            <input id="osc1Level" type="range" min="0" max="100" value="80" class="w-full" />
+          </div>
+
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Detune</span>
+              <span id="osc1DetuneVal" class="font-mono text-sky-300">0 ct</span>
+            </div>
+            <input id="osc1Detune" type="range" min="-100" max="100" step="1" value="0" class="w-full" />
+          </div>
+
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Octave</span>
+              <span id="osc1OctaveVal" class="font-mono text-sky-300">0</span>
+            </div>
+            <input id="osc1Octave" type="range" min="-3" max="3" step="1" value="0" class="w-full" />
+          </div>
+
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Semi-Tone</span>
+              <span id="osc1SemiVal" class="font-mono text-sky-300">0 st</span>
+            </div>
+            <input id="osc1Semi" type="range" min="-12" max="12" step="1" value="0" class="w-full" />
+          </div>
+        </div>
+
+        <!-- Pulse Width Slider (Shown when Pulse selected) -->
+        <div id="osc1PulseBox" class="hidden bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex-col gap-1">
+          <div class="flex justify-between text-[11px]">
+            <span class="text-slate-400">Pulse Width (Duty Cycle)</span>
+            <span id="osc1PulseVal" class="font-mono text-amber-300">50%</span>
+          </div>
+          <input id="osc1Pulse" type="range" min="5" max="95" step="1" value="50" class="w-full" />
+        </div>
+      </div>
+
+      <!-- Oscillator 2 Card -->
+      <div class="bg-synth-900 border border-synth-800 rounded-2xl p-4 studio-card flex flex-col gap-3.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-white">Oscillator 2 (Sub / Harmony)</h2>
+          </div>
+          <span id="osc2HzBadge" class="text-[11px] font-mono text-indigo-300 bg-synth-950 border border-synth-800 px-2 py-0.5 rounded-md">330.0 Hz</span>
+        </div>
+
+        <!-- Wave Shape Selector -->
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5" data-osc-group="2">
+          <button type="button" data-wave="sine" class="osc2-wave py-1.5 rounded-lg text-[11px] font-semibold border transition bg-synth-850 border-synth-700 text-slate-300 hover:bg-synth-800">Sine</button>
+          <button type="button" data-wave="triangle" class="osc2-wave py-1.5 rounded-lg text-[11px] font-semibold border transition bg-indigo-500/20 border-indigo-400 text-indigo-200">Tri</button>
+          <button type="button" data-wave="sawtooth" class="osc2-wave py-1.5 rounded-lg text-[11px] font-semibold border transition bg-synth-850 border-synth-700 text-slate-300 hover:bg-synth-800">Saw</button>
+          <button type="button" data-wave="square" class="osc2-wave py-1.5 rounded-lg text-[11px] font-semibold border transition bg-synth-850 border-synth-700 text-slate-300 hover:bg-synth-800">Sq</button>
+          <button type="button" data-wave="pulse" class="osc2-wave py-1.5 rounded-lg text-[11px] font-semibold border transition bg-synth-850 border-synth-700 text-slate-300 hover:bg-synth-800">Pulse</button>
+          <button type="button" data-wave="custom" class="osc2-wave py-1.5 rounded-lg text-[11px] font-semibold border transition bg-synth-850 border-synth-700 text-slate-300 hover:bg-synth-800">Draw</button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Level</span>
+              <span id="osc2LevelVal" class="font-mono text-indigo-300">45%</span>
+            </div>
+            <input id="osc2Level" type="range" min="0" max="100" value="45" class="w-full" />
+          </div>
+
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Detune</span>
+              <span id="osc2DetuneVal" class="font-mono text-indigo-300">+7 ct</span>
+            </div>
+            <input id="osc2Detune" type="range" min="-100" max="100" step="1" value="7" class="w-full" />
+          </div>
+
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Octave</span>
+              <span id="osc2OctaveVal" class="font-mono text-indigo-300">0</span>
+            </div>
+            <input id="osc2Octave" type="range" min="-3" max="3" step="1" value="0" class="w-full" />
+          </div>
+
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Semi-Tone</span>
+              <span id="osc2SemiVal" class="font-mono text-indigo-300">+7 st</span>
+            </div>
+            <input id="osc2Semi" type="range" min="-12" max="12" step="1" value="7" class="w-full" />
+          </div>
+        </div>
+
+        <div id="osc2PulseBox" class="hidden bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex-col gap-1">
+          <div class="flex justify-between text-[11px]">
+            <span class="text-slate-400">Pulse Width (Duty Cycle)</span>
+            <span id="osc2PulseVal" class="font-mono text-amber-300">50%</span>
+          </div>
+          <input id="osc2Pulse" type="range" min="5" max="95" step="1" value="50" class="w-full" />
+        </div>
+      </div>
+
+      <!-- Custom Waveform / Harmonic Draw Pad -->
+      <div class="bg-synth-900 border border-synth-800 rounded-2xl p-4 studio-card flex flex-col gap-2.5">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-white">Custom Cycle Draw Pad</h3>
+            <p class="text-[11px] text-slate-400">Drag to draw a custom wave cycle (active when "Draw" is selected)</p>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button id="smoothDrawBtn" type="button" class="text-[11px] px-2 py-1 rounded-lg bg-synth-850 hover:bg-synth-800 border border-synth-700 text-slate-300">Smooth</button>
+            <button id="resetDrawBtn" type="button" class="text-[11px] px-2 py-1 rounded-lg bg-synth-850 hover:bg-synth-800 border border-synth-700 text-sky-300">Sine</button>
+          </div>
+        </div>
+        <div class="w-full h-28 rounded-xl overflow-hidden bg-[#05070c] border border-synth-800">
+          <canvas id="customWaveCanvas" class="w-full h-full block interactive-pad"></canvas>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- COLUMN 2: Pitch Curve, Filter, LFO & Noise (4 Cols on XL) -->
+    <section class="xl:col-span-4 flex flex-col gap-5">
+
+      <!-- Interactive Pitch Curve & LFO Card -->
+      <div class="bg-synth-900 border border-synth-800 rounded-2xl p-4 studio-card flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-white">Pitch Curve &amp; LFO Modulation</h2>
+          </div>
+          <button id="resetPitchCurveBtn" type="button" class="text-[11px] font-mono text-amber-300 hover:underline">Flat Curve</button>
+        </div>
+        <p class="text-[11px] text-slate-400">Drag across the canvas to sculpt pitch motion over time (top = high pitch, bottom = low pitch).</p>
+
+        <div class="w-full h-28 rounded-xl overflow-hidden bg-[#05070c] border border-synth-800">
+          <canvas id="pitchCurveCanvas" class="w-full h-full block interactive-pad"></canvas>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1.5">
+            <div class="flex justify-between items-center gap-1 text-[11px]">
+              <label for="basePitchSlider" class="text-slate-400">Base Pitch</label>
+              <div class="flex items-center gap-1">
+                <input id="basePitchInput" type="number" min="20" max="4000" step="1" value="220"
+                  aria-label="Base frequency in Hz"
+                  class="w-16 bg-synth-850 border border-synth-700 rounded px-1.5 py-0.5 font-mono text-[11px] text-amber-300 text-right focus:outline-none focus:border-amber-400" />
+                <span class="font-mono text-[10px] text-amber-300/80">Hz</span>
+              </div>
+            </div>
+            <input id="basePitchSlider" type="range" min="30" max="1500" step="1" value="220" class="w-full" />
+            <span id="basePitchVal" class="sr-only">220 Hz</span>
+          </div>
+
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1.5">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Pitch Range</span>
+              <span id="pitchSpanVal" class="font-mono text-amber-300">±12 st</span>
+            </div>
+            <input id="pitchSpanSlider" type="range" min="1" max="36" step="1" value="12" class="w-full" />
+          </div>
+        </div>
+
+        <!-- LFO Row -->
+        <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-3 flex flex-col gap-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-fuchsia-300">LFO Modulator</span>
+            <select id="lfoTargetSelect" class="bg-synth-850 border border-synth-700 rounded-lg px-2 py-1 text-[11px] font-mono text-slate-200 focus:outline-none">
+              <option value="pitch">Target: Pitch Vibrato</option>
+              <option value="filter">Target: Filter Cutoff</option>
+              <option value="amp">Target: Amp Tremolo</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <span class="text-[10px] text-slate-400 block mb-1">Wave</span>
+              <select id="lfoWaveSelect" class="w-full bg-synth-850 border border-synth-700 rounded-lg px-1.5 py-1 text-[11px] text-slate-200 focus:outline-none">
+                <option value="sine">Sine</option>
+                <option value="triangle">Triangle</option>
+                <option value="sawtooth">Saw</option>
+                <option value="square">Square</option>
+              </select>
+            </div>
+            <div>
+              <div class="flex justify-between text-[10px] mb-1">
+                <span class="text-slate-400">Rate</span>
+                <span id="lfoRateVal" class="font-mono text-fuchsia-300">5.0Hz</span>
+              </div>
+              <input id="lfoRateSlider" type="range" min="0.2" max="35" step="0.2" value="5.0" class="w-full" />
+            </div>
+            <div>
+              <div class="flex justify-between text-[10px] mb-1">
+                <span class="text-slate-400">Depth</span>
+                <span id="lfoDepthVal" class="font-mono text-fuchsia-300">20%</span>
+              </div>
+              <input id="lfoDepthSlider" type="range" min="0" max="100" step="1" value="20" class="w-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter + Filter Envelope Card -->
+      <div class="bg-synth-900 border border-synth-800 rounded-2xl p-4 studio-card flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-white">Filter &amp; Filter Envelope</h2>
+          </div>
+          <div class="flex items-center gap-1" id="filterTypeGroup">
+            <button type="button" data-ftype="lowpass" class="ftype-btn px-2 py-1 rounded-md text-[10px] font-mono font-semibold border bg-emerald-500/20 border-emerald-400 text-emerald-200">LPF</button>
+            <button type="button" data-ftype="highpass" class="ftype-btn px-2 py-1 rounded-md text-[10px] font-mono font-semibold border bg-synth-850 border-synth-700 text-slate-400">HPF</button>
+            <button type="button" data-ftype="bandpass" class="ftype-btn px-2 py-1 rounded-md text-[10px] font-mono font-semibold border bg-synth-850 border-synth-700 text-slate-400">BPF</button>
+            <button type="button" data-ftype="notch" class="ftype-btn px-2 py-1 rounded-md text-[10px] font-mono font-semibold border bg-synth-850 border-synth-700 text-slate-400">NOTCH</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2.5">
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Cutoff</span>
+              <span id="filterCutoffVal" class="font-mono text-emerald-300">4.2kHz</span>
+            </div>
+            <input id="filterCutoffSlider" type="range" min="30" max="16000" step="10" value="4200" class="w-full" />
+          </div>
+
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Resonance</span>
+              <span id="filterQVal" class="font-mono text-emerald-300">2.0</span>
+            </div>
+            <input id="filterQSlider" type="range" min="0.2" max="18" step="0.1" value="2.0" class="w-full" />
+          </div>
+
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Env Sweep</span>
+              <span id="filterEnvVal" class="font-mono text-emerald-300">+25%</span>
+            </div>
+            <input id="filterEnvSlider" type="range" min="-100" max="100" step="1" value="25" class="w-full" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Noise & Texture Layer Card -->
+      <div class="bg-synth-900 border border-synth-800 rounded-2xl p-4 studio-card flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-white">Noise &amp; Texture Layer</h2>
+          </div>
+          <select id="noiseColorSelect" class="bg-synth-850 border border-synth-700 rounded-lg px-2 py-1 text-[11px] font-mono text-rose-300 focus:outline-none">
+            <option value="white">White Noise</option>
+            <option value="pink">Pink Noise</option>
+            <option value="brown">Brown Noise</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2.5">
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Level</span>
+              <span id="noiseLevelVal" class="font-mono text-rose-300">12%</span>
+            </div>
+            <input id="noiseLevelSlider" type="range" min="0" max="100" step="1" value="12" class="w-full" />
+          </div>
+
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Tone Hz</span>
+              <span id="noiseCutoffVal" class="font-mono text-rose-300">2.5kHz</span>
+            </div>
+            <input id="noiseCutoffSlider" type="range" min="80" max="15000" step="20" value="2500" class="w-full" />
+          </div>
+
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1">
+            <span class="text-[11px] text-slate-400">Texture Gate</span>
+            <select id="noiseGateSelect" class="bg-synth-850 border border-synth-700 rounded-lg px-1.5 py-1 text-[11px] text-slate-200 focus:outline-none">
+              <option value="continuous">Continuous</option>
+              <option value="pulse">Rumble Pulse</option>
+              <option value="burst">Crack / Burst</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- COLUMN 3: ADSR Envelope, Effects Rack & Live Scopes (4 Cols on XL) -->
+    <section class="xl:col-span-4 flex flex-col gap-5">
+
+      <!-- Amplitude ADSR Envelope + Duration & Master Gain Card -->
+      <div class="bg-synth-900 border border-synth-800 rounded-2xl p-4 studio-card flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-white">Amplitude ADSR &amp; Master</h2>
+          <div class="flex items-center gap-2">
+            <select id="sampleRateSelect" class="bg-synth-850 border border-synth-700 rounded-lg px-2 py-1 text-[11px] font-mono text-sky-300 focus:outline-none">
+              <option value="22050">22.05 kHz</option>
+              <option value="44100" selected>44.1 kHz</option>
+              <option value="48000">48.0 kHz</option>
+            </select>
+            <select id="bitDepthSelect" class="bg-synth-850 border border-synth-700 rounded-lg px-2 py-1 text-[11px] font-mono text-emerald-300 focus:outline-none">
+              <option value="16" selected>16-Bit WAV</option>
+              <option value="32">32-Bit Float</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Interactive ADSR Canvas -->
+        <div class="w-full h-24 rounded-xl overflow-hidden bg-[#05070c] border border-synth-800">
+          <canvas id="adsrCanvas" class="w-full h-full block interactive-pad"></canvas>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2 flex flex-col gap-1">
+            <div class="flex justify-between text-[10px]">
+              <span class="text-slate-400">Attack</span>
+              <span id="adsrAVal" class="font-mono text-sky-300">0.02s</span>
+            </div>
+            <input id="adsrASlider" type="range" min="0.002" max="2.0" step="0.005" value="0.02" class="w-full" />
+          </div>
+
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2 flex flex-col gap-1">
+            <div class="flex justify-between text-[10px]">
+              <span class="text-slate-400">Decay</span>
+              <span id="adsrDVal" class="font-mono text-sky-300">0.20s</span>
+            </div>
+            <input id="adsrDSlider" type="range" min="0.01" max="2.5" step="0.01" value="0.20" class="w-full" />
+          </div>
+
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2 flex flex-col gap-1">
+            <div class="flex justify-between text-[10px]">
+              <span class="text-slate-400">Sustain</span>
+              <span id="adsrSVal" class="font-mono text-sky-300">70%</span>
+            </div>
+            <input id="adsrSSlider" type="range" min="0" max="100" step="1" value="70" class="w-full" />
+          </div>
+
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2 flex flex-col gap-1">
+            <div class="flex justify-between text-[10px]">
+              <span class="text-slate-400">Release</span>
+              <span id="adsrRVal" class="font-mono text-sky-300">0.25s</span>
+            </div>
+            <input id="adsrRSlider" type="range" min="0.01" max="3.0" step="0.01" value="0.25" class="w-full" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Duration</span>
+              <span id="durationVal" class="font-mono text-amber-300">1.50s</span>
+            </div>
+            <input id="durationSlider" type="range" min="0.1" max="8.0" step="0.05" value="1.5" class="w-full" />
+          </div>
+
+          <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Master Gain</span>
+              <span id="masterGainVal" class="font-mono text-emerald-300">80%</span>
+            </div>
+            <input id="masterGainSlider" type="range" min="0" max="100" step="1" value="80" class="w-full" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Effects Rack: Distortion, Delay, Reverb -->
+      <div class="bg-synth-900 border border-synth-800 rounded-2xl p-4 studio-card flex flex-col gap-3">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-white">Effects Rack (Drive · Delay · Reverb)</h2>
+
+        <!-- Distortion -->
+        <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-1">
+          <div class="flex justify-between text-[11px]">
+            <span class="text-slate-300 font-medium">Distortion / Drive</span>
+            <span id="driveVal" class="font-mono text-orange-300">15%</span>
+          </div>
+          <input id="driveSlider" type="range" min="0" max="100" step="1" value="15" class="w-full" />
+        </div>
+
+        <!-- Delay / Echo -->
+        <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-2">
+          <div class="flex justify-between text-[11px]">
+            <span class="text-slate-300 font-medium">Delay / Echo Mix</span>
+            <span id="delayMixVal" class="font-mono text-sky-300">20%</span>
+          </div>
+          <input id="delayMixSlider" type="range" min="0" max="85" step="1" value="20" class="w-full" />
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <div>
+              <div class="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                <span>Time</span>
+                <span id="delayTimeVal" class="font-mono">0.22s</span>
+              </div>
+              <input id="delayTimeSlider" type="range" min="0.02" max="1.0" step="0.01" value="0.22" class="w-full" />
+            </div>
+            <div>
+              <div class="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                <span>Feedback</span>
+                <span id="delayFbVal" class="font-mono">35%</span>
+              </div>
+              <input id="delayFbSlider" type="range" min="0" max="85" step="1" value="35" class="w-full" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Reverb / Space -->
+        <div class="bg-synth-950/80 border border-synth-800 rounded-xl p-2.5 flex flex-col gap-2">
+          <div class="flex justify-between text-[11px]">
+            <span class="text-slate-300 font-medium">Reverb / Space Mix</span>
+            <span id="reverbMixVal" class="font-mono text-indigo-300">25%</span>
+          </div>
+          <input id="reverbMixSlider" type="range" min="0" max="90" step="1" value="25" class="w-full" />
+          <div class="flex justify-between text-[10px] text-slate-400">
+            <span>Room Decay Size</span>
+            <span id="reverbDecayVal" class="font-mono">1.8s</span>
+          </div>
+          <input id="reverbDecaySlider" type="range" min="0.2" max="5.0" step="0.1" value="1.8" class="w-full" />
+        </div>
+      </div>
+
+      <!-- Live Oscilloscope & Spectrum Analyzer -->
+      <div class="bg-synth-900 border border-synth-800 rounded-2xl p-4 studio-card flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span id="livePulseDot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-white">Oscilloscope &amp; Spectrum</h2>
+          </div>
+          <span id="peakDbBadge" class="text-[11px] font-mono text-slate-400">Peak: — dB</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div class="h-32 rounded-xl overflow-hidden bg-[#05070c] border border-synth-800 relative">
+            <span class="absolute top-1.5 left-2 text-[9px] font-mono uppercase text-sky-400/80 pointer-events-none">Scope</span>
+            <canvas id="liveScopeCanvas" class="w-full h-full block"></canvas>
+          </div>
+          <div class="h-32 rounded-xl overflow-hidden bg-[#05070c] border border-synth-800 relative">
+            <span class="absolute top-1.5 left-2 text-[9px] font-mono uppercase text-fuchsia-400/80 pointer-events-none">FFT</span>
+            <canvas id="liveSpectrumCanvas" class="w-full h-full block"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <script>
+    /**
+     * OMNISYNTH PRO — Visual Sound Design Synthesizer Studio
+     * Purely visual controls, interactive curves/pads, procedural Web Audio API synthesis,
+     * real-time visualizers, and 16-bit/32-bit WAV export via OfflineAudioContext.
+     */
+    (function () {
+      'use strict';
+
+      // =====================================================================
+      // 1. SYNTHESIZER STATE & INTERACTIVE CURVE ARRAYS
+      // =====================================================================
+      const CURVE_POINTS = 32;
+      const WAVE_TABLE_LEN = 128;
+
+      const state = {
+        // Core Pitch (explicitly defined as baseFreq with default 220 Hz)
+        baseFreq: 220,
+        pitchSpanSemitones: 12,
+
+        // Oscillators
+        osc1Wave: 'sawtooth',
+        osc1Level: 0.80,
+        osc1Detune: 0,
+        osc1Octave: 0,
+        osc1Semi: 0,
+        osc1Pulse: 0.50,
+
+        osc2Wave: 'triangle',
+        osc2Level: 0.45,
+        osc2Detune: 7,
+        osc2Octave: 0,
+        osc2Semi: 7,
+        osc2Pulse: 0.50,
+
+        // Custom drawn cycle (-1 to +1)
+        customCycle: new Float32Array(WAVE_TABLE_LEN),
+
+        // Pitch curve over time (0 = bottom [-pitchSpan], 0.5 = center [0], 1 = top [+pitchSpan])
+        pitchCurve: new Float32Array(CURVE_POINTS).fill(0.5),
+
+        // LFO
+        lfoTarget: 'pitch', // 'pitch' | 'filter' | 'amp'
+        lfoWave: 'sine',
+        lfoRate: 5.0,
+        lfoDepth: 0.20,
+
+        // Filter
+        filterType: 'lowpass', // 'lowpass' | 'highpass' | 'bandpass' | 'notch'
+        filterCutoff: 4200,
+        filterQ: 2.0,
+        filterEnvAmount: 0.25, // -1 to +1
+
+        // Noise Layer
+        noiseColor: 'white', // 'white' | 'pink' | 'brown'
+        noiseLevel: 0.12,
+        noiseCutoff: 2500,
+        noiseGate: 'continuous', // 'continuous' | 'pulse' | 'burst'
+
+        // Envelope & Master
+        attack: 0.02,
+        decay: 0.20,
+        sustain: 0.70,
+        release: 0.25,
+        duration: 1.50,
+        masterGain: 0.80,
+        sampleRate: 44100,
+        bitDepth: 16,
+
+        // Effects
+        drive: 0.15,
+        delayMix: 0.20,
+        delayTime: 0.22,
+        delayFeedback: 0.35,
+        reverbMix: 0.25,
+        reverbDecay: 1.8,
+
+        // Transport
+        loop: false,
+        isPlaying: false,
+        activeMacroId: 'pluck',
+        lastRenderedBuffer: null
+      };
+
+      // Initialize custom cycle with a clean sine wave
+      function resetCustomCycleToSine() {
+        for (let i = 0; i < WAVE_TABLE_LEN; i++) {
+          const p = (i / WAVE_TABLE_LEN) * Math.PI * 2;
+          state.customCycle[i] = Math.sin(p);
+        }
+      }
+      resetCustomCycleToSine();
+
+      // =====================================================================
+      // 2. 8 INSTANT SOUND CHARACTER MACROS (STARTING POINTS)
+      // =====================================================================
+      const MACROS = [
+        {
+          id: 'pluck',
+          label: 'Pluck / FX',
+          apply: () => {
+            state.duration = 1.2;
+            state.baseFreq = 330;
+            state.pitchSpanSemitones = 12;
+            state.pitchCurve.fill(0.5);
+            for (let i = 0; i < 6; i++) state.pitchCurve[i] = 0.5 + (1 - i / 6) * 0.25;
+            state.osc1Wave = 'sawtooth'; state.osc1Level = 0.75; state.osc1Octave = 0; state.osc1Semi = 0; state.osc1Detune = -5;
+            state.osc2Wave = 'triangle'; state.osc2Level = 0.45; state.osc2Octave = 1; state.osc2Semi = 0; state.osc2Detune = 6;
+            state.filterType = 'lowpass'; state.filterCutoff = 5200; state.filterQ = 3.2; state.filterEnvAmount = 0.65;
+            state.attack = 0.005; state.decay = 0.28; state.sustain = 0.18; state.release = 0.35;
+            state.noiseColor = 'white'; state.noiseLevel = 0.06; state.noiseCutoff = 4000; state.noiseGate = 'burst';
+            state.drive = 0.18; state.delayMix = 0.24; state.delayTime = 0.24; state.delayFeedback = 0.38; state.reverbMix = 0.22; state.reverbDecay = 1.5;
+            state.lfoTarget = 'pitch'; state.lfoWave = 'sine'; state.lfoRate = 4.0; state.lfoDepth = 0.05;
+          }
+        },
+        {
+          id: 'scream',
+          label: 'Scream / Shriek',
+          apply: () => {
+            state.duration = 1.6;
+            state.baseFreq = 580;
+            state.pitchSpanSemitones = 18;
+            for (let i = 0; i < CURVE_POINTS; i++) {
+              const t = i / (CURVE_POINTS - 1);
+              state.pitchCurve[i] = t < 0.4 ? 0.5 + (t / 0.4) * 0.45 : 0.95 - ((t - 0.4) / 0.6) * 0.55;
+            }
+            state.osc1Wave = 'sawtooth'; state.osc1Level = 0.95; state.osc1Octave = 0; state.osc1Semi = 0; state.osc1Detune = 14;
+            state.osc2Wave = 'square'; state.osc2Level = 0.65; state.osc2Octave = 0; state.osc2Semi = 5; state.osc2Detune = -16;
+            state.filterType = 'bandpass'; state.filterCutoff = 1650; state.filterQ = 6.5; state.filterEnvAmount = 0.55;
+            state.attack = 0.08; state.decay = 0.3; state.sustain = 0.85; state.release = 0.4;
+            state.noiseColor = 'white'; state.noiseLevel = 0.28; state.noiseCutoff = 3200; state.noiseGate = 'continuous';
+            state.drive = 0.78; state.delayMix = 0.18; state.delayTime = 0.16; state.delayFeedback = 0.32; state.reverbMix = 0.35; state.reverbDecay = 2.2;
+            state.lfoTarget = 'pitch'; state.lfoWave = 'sine'; state.lfoRate = 13.5; state.lfoDepth = 0.35;
+          }
+        },
+        {
+          id: 'ring',
+          label: 'Ring / Alarm',
+          apply: () => {
+            state.duration = 1.8;
+            state.baseFreq = 880;
+            state.pitchSpanSemitones = 7;
+            for (let i = 0; i < CURVE_POINTS; i++) {
+              state.pitchCurve[i] = i % 2 === 0 ? 0.68 : 0.32;
+            }
+            state.osc1Wave = 'square'; state.osc1Level = 0.80; state.osc1Octave = 0; state.osc1Semi = 0; state.osc1Detune = 0;
+            state.osc2Wave = 'sine'; state.osc2Level = 0.70; state.osc2Octave = 0; state.osc2Semi = 7; state.osc2Detune = 0;
+            state.filterType = 'bandpass'; state.filterCutoff = 1900; state.filterQ = 4.5; state.filterEnvAmount = 0.0;
+            state.attack = 0.005; state.decay = 0.05; state.sustain = 0.90; state.release = 0.12;
+            state.noiseColor = 'white'; state.noiseLevel = 0.0; state.noiseCutoff = 2000; state.noiseGate = 'continuous';
+            state.drive = 0.22; state.delayMix = 0.20; state.delayTime = 0.15; state.delayFeedback = 0.30; state.reverbMix = 0.25; state.reverbDecay = 1.4;
+            state.lfoTarget = 'amp'; state.lfoWave = 'square'; state.lfoRate = 18.0; state.lfoDepth = 0.75;
+          }
+        },
+        {
+          id: 'laser',
+          label: 'Laser / Sci-Fi',
+          apply: () => {
+            state.duration = 0.95;
+            state.baseFreq = 520;
+            state.pitchSpanSemitones = 28;
+            for (let i = 0; i < CURVE_POINTS; i++) {
+              const t = i / (CURVE_POINTS - 1);
+              state.pitchCurve[i] = Math.max(0.05, 0.95 * Math.pow(1 - t, 1.8));
+            }
+            state.osc1Wave = 'sawtooth'; state.osc1Level = 0.85; state.osc1Octave = 0; state.osc1Semi = 0; state.osc1Detune = 0;
+            state.osc2Wave = 'square'; state.osc2Level = 0.50; state.osc2Octave = 1; state.osc2Semi = 0; state.osc2Detune = 12;
+            state.filterType = 'lowpass'; state.filterCutoff = 4800; state.filterQ = 7.5; state.filterEnvAmount = -0.5;
+            state.attack = 0.003; state.decay = 0.45; state.sustain = 0.25; state.release = 0.35;
+            state.noiseColor = 'pink'; state.noiseLevel = 0.14; state.noiseCutoff = 2800; state.noiseGate = 'burst';
+            state.drive = 0.35; state.delayMix = 0.35; state.delayTime = 0.14; state.delayFeedback = 0.52; state.reverbMix = 0.30; state.reverbDecay = 1.9;
+            state.lfoTarget = 'filter'; state.lfoWave = 'sine'; state.lfoRate = 12.0; state.lfoDepth = 0.45;
+          }
+        },
+        {
+          id: 'bass',
+          label: 'Bass / Kick',
+          apply: () => {
+            state.duration = 0.90;
+            state.baseFreq = 62;
+            state.pitchSpanSemitones = 24;
+            for (let i = 0; i < CURVE_POINTS; i++) {
+              const t = i / (CURVE_POINTS - 1);
+              state.pitchCurve[i] = 0.15 + 0.85 * Math.exp(-t * 9.0);
+            }
+            state.osc1Wave = 'sine'; state.osc1Level = 0.95; state.osc1Octave = 0; state.osc1Semi = 0; state.osc1Detune = 0;
+            state.osc2Wave = 'triangle'; state.osc2Level = 0.45; state.osc2Octave = 0; state.osc2Semi = 12; state.osc2Detune = 0;
+            state.filterType = 'lowpass'; state.filterCutoff = 850; state.filterQ = 2.8; state.filterEnvAmount = 0.6;
+            state.attack = 0.002; state.decay = 0.35; state.sustain = 0.45; state.release = 0.30;
+            state.noiseColor = 'brown'; state.noiseLevel = 0.08; state.noiseCutoff = 350; state.noiseGate = 'burst';
+            state.drive = 0.45; state.delayMix = 0.0; state.delayTime = 0.2; state.delayFeedback = 0.0; state.reverbMix = 0.08; state.reverbDecay = 0.8;
+            state.lfoTarget = 'filter'; state.lfoWave = 'sine'; state.lfoRate = 2.0; state.lfoDepth = 0.1;
+          }
+        },
+        {
+          id: 'thunder',
+          label: 'Wind / Thunder',
+          apply: () => {
+            state.duration = 3.0;
+            state.baseFreq = 55;
+            state.pitchSpanSemitones = 12;
+            for (let i = 0; i < CURVE_POINTS; i++) {
+              const t = i / (CURVE_POINTS - 1);
+              state.pitchCurve[i] = 0.65 - t * 0.45;
+            }
+            state.osc1Wave = 'sine'; state.osc1Level = 0.45; state.osc1Octave = -1; state.osc1Semi = 0; state.osc1Detune = 0;
+            state.osc2Wave = 'sine'; state.osc2Level = 0.0; state.osc2Octave = 0; state.osc2Semi = 0; state.osc2Detune = 0;
+            state.filterType = 'lowpass'; state.filterCutoff = 480; state.filterQ = 3.0; state.filterEnvAmount = 0.4;
+            state.attack = 0.15; state.decay = 0.8; state.sustain = 0.55; state.release = 1.1;
+            state.noiseColor = 'brown'; state.noiseLevel = 0.95; state.noiseCutoff = 620; state.noiseGate = 'pulse';
+            state.drive = 0.35; state.delayMix = 0.22; state.delayTime = 0.38; state.delayFeedback = 0.42; state.reverbMix = 0.55; state.reverbDecay = 3.6;
+            state.lfoTarget = 'filter'; state.lfoWave = 'sine'; state.lfoRate = 1.6; state.lfoDepth = 0.65;
+          }
+        },
+        {
+          id: 'bell',
+          label: 'Bell / Metal',
+          apply: () => {
+            state.duration = 2.4;
+            state.baseFreq = 523.25;
+            state.pitchSpanSemitones = 6;
+            state.pitchCurve.fill(0.5);
+            state.osc1Wave = 'sine'; state.osc1Level = 0.85; state.osc1Octave = 0; state.osc1Semi = 0; state.osc1Detune = 0;
+            state.osc2Wave = 'triangle'; state.osc2Level = 0.55; state.osc2Octave = 1; state.osc2Semi = 7; state.osc2Detune = 9;
+            state.filterType = 'highpass'; state.filterCutoff = 260; state.filterQ = 2.5; state.filterEnvAmount = -0.3;
+            state.attack = 0.004; state.decay = 0.9; state.sustain = 0.20; state.release = 1.1;
+            state.noiseColor = 'white'; state.noiseLevel = 0.12; state.noiseCutoff = 6500; state.noiseGate = 'burst';
+            state.drive = 0.15; state.delayMix = 0.30; state.delayTime = 0.28; state.delayFeedback = 0.40; state.reverbMix = 0.48; state.reverbDecay = 2.8;
+            state.lfoTarget = 'amp'; state.lfoWave = 'sine'; state.lfoRate = 6.5; state.lfoDepth = 0.15;
+          }
+        },
+        {
+          id: 'drone',
+          label: 'Drone / Pad',
+          apply: () => {
+            state.duration = 3.5;
+            state.baseFreq = 146.83;
+            state.pitchSpanSemitones = 5;
+            for (let i = 0; i < CURVE_POINTS; i++) {
+              state.pitchCurve[i] = 0.5 + Math.sin((i / (CURVE_POINTS - 1)) * Math.PI) * 0.15;
+            }
+            state.osc1Wave = 'sawtooth'; state.osc1Level = 0.65; state.osc1Octave = 0; state.osc1Semi = 0; state.osc1Detune = -14;
+            state.osc2Wave = 'sawtooth'; state.osc2Level = 0.65; state.osc2Octave = 0; state.osc2Semi = 7; state.osc2Detune = 16;
+            state.filterType = 'lowpass'; state.filterCutoff = 1450; state.filterQ = 3.5; state.filterEnvAmount = 0.35;
+            state.attack = 0.75; state.decay = 0.6; state.sustain = 0.82; state.release = 1.1;
+            state.noiseColor = 'pink'; state.noiseLevel = 0.14; state.noiseCutoff = 1800; state.noiseGate = 'continuous';
+            state.drive = 0.20; state.delayMix = 0.34; state.delayTime = 0.42; state.delayFeedback = 0.48; state.reverbMix = 0.62; state.reverbDecay = 4.0;
+            state.lfoTarget = 'filter'; state.lfoWave = 'sine'; state.lfoRate = 0.55; state.lfoDepth = 0.55;
+          }
+        }
+      ];
+
+      // =====================================================================
+      // 3. DOM REFERENCES
+      // =====================================================================
+      const els = {
+        macroStrip: document.getElementById('macroStrip'),
+        loopBtn: document.getElementById('loopBtn'),
+        loopLabel: document.getElementById('loopLabel'),
+        hearSoundBtn: document.getElementById('hearSoundBtn'),
+        playSvg: document.getElementById('playSvg'),
+        stopSvg: document.getElementById('stopSvg'),
+        hearSoundLabel: document.getElementById('hearSoundLabel'),
+        downloadWavBtn: document.getElementById('downloadWavBtn'),
+
+        osc1HzBadge: document.getElementById('osc1HzBadge'),
+        osc1Waves: document.querySelectorAll('.osc1-wave'),
+        osc1Level: document.getElementById('osc1Level'),
+        osc1LevelVal: document.getElementById('osc1LevelVal'),
+        osc1Detune: document.getElementById('osc1Detune'),
+        osc1DetuneVal: document.getElementById('osc1DetuneVal'),
+        osc1Octave: document.getElementById('osc1Octave'),
+        osc1OctaveVal: document.getElementById('osc1OctaveVal'),
+        osc1Semi: document.getElementById('osc1Semi'),
+        osc1SemiVal: document.getElementById('osc1SemiVal'),
+        osc1PulseBox: document.getElementById('osc1PulseBox'),
+        osc1Pulse: document.getElementById('osc1Pulse'),
+        osc1PulseVal: document.getElementById('osc1PulseVal'),
+
+        osc2HzBadge: document.getElementById('osc2HzBadge'),
+        osc2Waves: document.querySelectorAll('.osc2-wave'),
+        osc2Level: document.getElementById('osc2Level'),
+        osc2LevelVal: document.getElementById('osc2LevelVal'),
+        osc2Detune: document.getElementById('osc2Detune'),
+        osc2DetuneVal: document.getElementById('osc2DetuneVal'),
+        osc2Octave: document.getElementById('osc2Octave'),
+        osc2OctaveVal: document.getElementById('osc2OctaveVal'),
+        osc2Semi: document.getElementById('osc2Semi'),
+        osc2SemiVal: document.getElementById('osc2SemiVal'),
+        osc2PulseBox: document.getElementById('osc2PulseBox'),
+        osc2Pulse: document.getElementById('osc2Pulse'),
+        osc2PulseVal: document.getElementById('osc2PulseVal'),
+
+        customWaveCanvas: document.getElementById('customWaveCanvas'),
+        smoothDrawBtn: document.getElementById('smoothDrawBtn'),
+        resetDrawBtn: document.getElementById('resetDrawBtn'),
+
+        pitchCurveCanvas: document.getElementById('pitchCurveCanvas'),
+        resetPitchCurveBtn: document.getElementById('resetPitchCurveBtn'),
+        basePitchSlider: document.getElementById('basePitchSlider'),
+        basePitchInput: document.getElementById('basePitchInput'),
+        basePitchVal: document.getElementById('basePitchVal'),
+        pitchSpanSlider: document.getElementById('pitchSpanSlider'),
+        pitchSpanVal: document.getElementById('pitchSpanVal'),
+
+        lfoTargetSelect: document.getElementById('lfoTargetSelect'),
+        lfoWaveSelect: document.getElementById('lfoWaveSelect'),
+        lfoRateSlider: document.getElementById('lfoRateSlider'),
+        lfoRateVal: document.getElementById('lfoRateVal'),
+        lfoDepthSlider: document.getElementById('lfoDepthSlider'),
+        lfoDepthVal: document.getElementById('lfoDepthVal'),
+
+        filterTypeGroup: document.getElementById('filterTypeGroup'),
+        ftypeBtns: document.querySelectorAll('.ftype-btn'),
+        filterCutoffSlider: document.getElementById('filterCutoffSlider'),
+        filterCutoffVal: document.getElementById('filterCutoffVal'),
+        filterQSlider: document.getElementById('filterQSlider'),
+        filterQVal: document.getElementById('filterQVal'),
+        filterEnvSlider: document.getElementById('filterEnvSlider'),
+        filterEnvVal: document.getElementById('filterEnvVal'),
+
+        noiseColorSelect: document.getElementById('noiseColorSelect'),
+        noiseLevelSlider: document.getElementById('noiseLevelSlider'),
+        noiseLevelVal: document.getElementById('noiseLevelVal'),
+        noiseCutoffSlider: document.getElementById('noiseCutoffSlider'),
+        noiseCutoffVal: document.getElementById('noiseCutoffVal'),
+        noiseGateSelect: document.getElementById('noiseGateSelect'),
+
+        adsrCanvas: document.getElementById('adsrCanvas'),
+        adsrASlider: document.getElementById('adsrASlider'),
+        adsrAVal: document.getElementById('adsrAVal'),
+        adsrDSlider: document.getElementById('adsrDSlider'),
+        adsrDVal: document.getElementById('adsrDVal'),
+        adsrSSlider: document.getElementById('adsrSSlider'),
+        adsrSVal: document.getElementById('adsrSVal'),
+        adsrRSlider: document.getElementById('adsrRSlider'),
+        adsrRVal: document.getElementById('adsrRVal'),
+        durationSlider: document.getElementById('durationSlider'),
+        durationVal: document.getElementById('durationVal'),
+        masterGainSlider: document.getElementById('masterGainSlider'),
+        masterGainVal: document.getElementById('masterGainVal'),
+        sampleRateSelect: document.getElementById('sampleRateSelect'),
+        bitDepthSelect: document.getElementById('bitDepthSelect'),
+
+        driveSlider: document.getElementById('driveSlider'),
+        driveVal: document.getElementById('driveVal'),
+        delayMixSlider: document.getElementById('delayMixSlider'),
+        delayMixVal: document.getElementById('delayMixVal'),
+        delayTimeSlider: document.getElementById('delayTimeSlider'),
+        delayTimeVal: document.getElementById('delayTimeVal'),
+        delayFbSlider: document.getElementById('delayFbSlider'),
+        delayFbVal: document.getElementById('delayFbVal'),
+        reverbMixSlider: document.getElementById('reverbMixSlider'),
+        reverbMixVal: document.getElementById('reverbMixVal'),
+        reverbDecaySlider: document.getElementById('reverbDecaySlider'),
+        reverbDecayVal: document.getElementById('reverbDecayVal'),
+
+        livePulseDot: document.getElementById('livePulseDot'),
+        peakDbBadge: document.getElementById('peakDbBadge'),
+        liveScopeCanvas: document.getElementById('liveScopeCanvas'),
+        liveSpectrumCanvas: document.getElementById('liveSpectrumCanvas'),
+        toastContainer: document.getElementById('toastContainer')
+      };
+
+      // =====================================================================
+      // 4. TOAST NOTIFICATION SYSTEM (NO ALERT)
+      // =====================================================================
+      function showToast(msg, type = 'info') {
+        const colors = {
+          info: 'bg-synth-850 border-sky-500/50 text-sky-200',
+          success: 'bg-synth-850 border-emerald-500/50 text-emerald-200',
+          error: 'bg-synth-850 border-rose-500/50 text-rose-200'
+        };
+        const div = document.createElement('div');
+        div.className = `pointer-events-auto px-4 py-3 rounded-xl border shadow-xl text-xs font-medium backdrop-blur-md transition-all duration-300 transform translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+        div.textContent = msg;
+        els.toastContainer.appendChild(div);
+        requestAnimationFrame(() => div.classList.remove('translate-y-2', 'opacity-0'));
+        setTimeout(() => {
+          div.classList.add('opacity-0', 'translate-y-2');
+          setTimeout(() => div.remove(), 300);
+        }, 3000);
+      }
+
+      // =====================================================================
+      // 5. PROCEDURAL WEB AUDIO DSP SYNTHESIS GRAPH BUILDER
+      // =====================================================================
+      function getEffectiveBaseFreq(octave, semi, baseFreq = state.baseFreq) {
+        return baseFreq * Math.pow(2, octave + semi / 12);
+      }
+
+      function createPulsePeriodicWave(ctx, duty = 0.5) {
+        const harmonics = 32;
+        const real = new Float32Array(harmonics + 1);
+        const imag = new Float32Array(harmonics + 1);
+        for (let n = 1; n <= harmonics; n++) {
+          const coeff = (2 / (n * Math.PI)) * Math.sin(n * Math.PI * duty);
+          imag[n] = coeff;
+        }
+        return ctx.createPeriodicWave(real, imag, { disableNormalization: false });
+      }
+
+      function createCustomPeriodicWave(ctx, cycleArray) {
+        const N = cycleArray.length;
+        const harmonics = 32;
+        const real = new Float32Array(harmonics + 1);
+        const imag = new Float32Array(harmonics + 1);
+        for (let k = 1; k <= harmonics; k++) {
+          let re = 0, im = 0;
+          for (let n = 0; n < N; n++) {
+            const angle = (2 * Math.PI * k * n) / N;
+            re += cycleArray[n] * Math.cos(angle);
+            im -= cycleArray[n] * Math.sin(angle);
+          }
+          real[k] = (2 / N) * re;
+          imag[k] = -(2 / N) * im;
+        }
+        return ctx.createPeriodicWave(real, imag, { disableNormalization: false });
+      }
+
+      function createNoiseBuffer(ctx, color, seconds) {
+        const len = Math.max(1, Math.floor(ctx.sampleRate * seconds));
+        const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+
+        if (color === 'pink') {
+          let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+          for (let i = 0; i < len; i++) {
+            const w = Math.random() * 2 - 1;
+            b0 = 0.99886 * b0 + w * 0.0555179;
+            b1 = 0.99332 * b1 + w * 0.0750759;
+            b2 = 0.96900 * b2 + w * 0.1538520;
+            b3 = 0.86650 * b3 + w * 0.3104856;
+            b4 = 0.55000 * b4 + w * 0.5329522;
+            b5 = -0.7616 * b5 - w * 0.0168980;
+            data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
+            b6 = w * 0.115926;
+          }
+        } else if (color === 'brown') {
+          let last = 0;
+          for (let i = 0; i < len; i++) {
+            const w = Math.random() * 2 - 1;
+            last = (last + 0.02 * w) / 1.02;
+            data[i] = last * 3.5;
+          }
+        } else {
+          for (let i = 0; i < len; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
+        }
+        return buf;
+      }
+
+      function createReverbImpulse(ctx, seconds, decayRate = 2.4) {
+        const len = Math.max(1, Math.floor(ctx.sampleRate * seconds));
+        const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+        for (let ch = 0; ch < 2; ch++) {
+          const data = buf.getChannelData(ch);
+          for (let i = 0; i < len; i++) {
+            const env = Math.pow(1 - i / len, decayRate);
+            data[i] = (Math.random() * 2 - 1) * env;
+          }
+        }
+        return buf;
+      }
+
+      function createDriveCurve(amount) {
+        const k = amount * 160;
+        const n = 44100;
+        const curve = new Float32Array(n);
+        if (k <= 0.001) {
+          for (let i = 0; i < n; i++) curve[i] = (i * 2) / n - 1;
+          return curve;
+        }
+        for (let i = 0; i < n; i++) {
+          const x = (i * 2) / n - 1;
+          curve[i] = ((3 + k) * x * 20 * (Math.PI / 180)) / (Math.PI + k * Math.abs(x));
+        }
+        return curve;
+      }
+
+      function applyPitchCurveToParam(audioParam, startFreq, now, dur) {
+        audioParam.setValueAtTime(startFreq, now);
+        for (let i = 0; i < CURVE_POINTS; i++) {
+          const t = now + (i / (CURVE_POINTS - 1)) * dur;
+          const semitoneOffset = (state.pitchCurve[i] - 0.5) * 2 * state.pitchSpanSemitones;
+          const hz = Math.max(12, Math.min(20000, startFreq * Math.pow(2, semitoneOffset / 12)));
+          audioParam.linearRampToValueAtTime(hz, t);
+        }
+      }
+
+      function configureOscillator(ctx, wave, pulseDuty, customWaveCache) {
+        const osc = ctx.createOscillator();
+        if (wave === 'pulse') {
+          osc.setPeriodicWave(createPulsePeriodicWave(ctx, pulseDuty));
+        } else if (wave === 'custom') {
+          if (!customWaveCache.wave) {
+            customWaveCache.wave = createCustomPeriodicWave(ctx, state.customCycle);
+          }
+          osc.setPeriodicWave(customWaveCache.wave);
+        } else {
+          osc.type = wave;
+        }
+        return osc;
+      }
+
+      /**
+       * Builds the complete visual synthesizer graph on `ctx`
+       */
+      function buildSynthGraph(ctx, dur) {
+        const now = ctx.currentTime;
+        const baseFreq = Number.isFinite(state.baseFreq) && state.baseFreq > 0 ? state.baseFreq : 220;
+        const customCache = { wave: null };
+
+        // Master Bus
+        const masterBus = ctx.createGain();
+        masterBus.gain.setValueAtTime(state.masterGain, now);
+
+        // ADSR Amplitude Envelope Node
+        const ampEnv = ctx.createGain();
+        const aEnd = now + Math.min(state.attack, dur * 0.8);
+        const dEnd = aEnd + Math.min(state.decay, Math.max(0.005, dur - (aEnd - now)));
+        const relStart = Math.max(dEnd, now + Math.max(0.01, dur - state.release));
+
+        ampEnv.gain.setValueAtTime(0.0005, now);
+        ampEnv.gain.linearRampToValueAtTime(1.0, aEnd);
+        ampEnv.gain.exponentialRampToValueAtTime(Math.max(0.0008, state.sustain), dEnd);
+        ampEnv.gain.setValueAtTime(Math.max(0.0008, state.sustain), relStart);
+        ampEnv.gain.exponentialRampToValueAtTime(0.0005, now + dur);
+
+        // State-Variable / Biquad Filter
+        const filter = ctx.createBiquadFilter();
+        filter.type = state.filterType;
+        filter.Q.setValueAtTime(state.filterQ, now);
+
+        const baseCutoff = state.filterCutoff;
+        const envPeakCutoff = Math.max(
+          25,
+          Math.min(18000, baseCutoff * Math.pow(2, state.filterEnvAmount * 2.5))
+        );
+        filter.frequency.setValueAtTime(baseCutoff, now);
+        filter.frequency.exponentialRampToValueAtTime(Math.max(25, envPeakCutoff), aEnd);
+        filter.frequency.exponentialRampToValueAtTime(Math.max(25, baseCutoff), Math.min(now + dur, dEnd + 0.15));
+
+        // LFO Modulator
+        const lfo = ctx.createOscillator();
+        lfo.type = state.lfoWave;
+        lfo.frequency.setValueAtTime(state.lfoRate, now);
+        const lfoGain = ctx.createGain();
+
+        // Oscillator 1
+        const osc1Freq = getEffectiveBaseFreq(state.osc1Octave, state.osc1Semi, baseFreq);
+        const osc1 = configureOscillator(ctx, state.osc1Wave, state.osc1Pulse, customCache);
+        osc1.detune.setValueAtTime(state.osc1Detune, now);
+        applyPitchCurveToParam(osc1.frequency, osc1Freq, now, dur);
+
+        const osc1Gain = ctx.createGain();
+        osc1Gain.gain.setValueAtTime(state.osc1Level, now);
+        osc1.connect(osc1Gain);
+        osc1Gain.connect(filter);
+
+        // Oscillator 2
+        const osc2Freq = getEffectiveBaseFreq(state.osc2Octave, state.osc2Semi, baseFreq);
+        const osc2 = configureOscillator(ctx, state.osc2Wave, state.osc2Pulse, customCache);
+        osc2.detune.setValueAtTime(state.osc2Detune, now);
+        applyPitchCurveToParam(osc2.frequency, osc2Freq, now, dur);
+
+        const osc2Gain = ctx.createGain();
+        osc2Gain.gain.setValueAtTime(state.osc2Level, now);
+        osc2.connect(osc2Gain);
+        osc2Gain.connect(filter);
+
+        // Route LFO to chosen target
+        if (state.lfoTarget === 'pitch') {
+          lfoGain.gain.setValueAtTime(state.lfoDepth * baseFreq * 0.15, now);
+          lfo.connect(lfoGain);
+          lfoGain.connect(osc1.frequency);
+          lfoGain.connect(osc2.frequency);
+        } else if (state.lfoTarget === 'filter') {
+          lfoGain.gain.setValueAtTime(state.lfoDepth * baseCutoff * 0.75, now);
+          lfo.connect(lfoGain);
+          lfoGain.connect(filter.frequency);
+        } else if (state.lfoTarget === 'amp') {
+          lfoGain.gain.setValueAtTime(state.lfoDepth * 0.5, now);
+          lfo.connect(lfoGain);
+          lfoGain.connect(ampEnv.gain);
+        }
+
+        // Noise & Texture Layer
+        if (state.noiseLevel > 0.001) {
+          const noiseSrc = ctx.createBufferSource();
+          noiseSrc.buffer = createNoiseBuffer(ctx, state.noiseColor, dur + 0.1);
+          noiseSrc.loop = true;
+
+          const noiseFilter = ctx.createBiquadFilter();
+          noiseFilter.type = 'bandpass';
+          noiseFilter.frequency.setValueAtTime(state.noiseCutoff, now);
+          noiseFilter.Q.setValueAtTime(1.2, now);
+
+          const noiseGain = ctx.createGain();
+          if (state.noiseGate === 'burst') {
+            noiseGain.gain.setValueAtTime(state.noiseLevel, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + Math.min(dur, 0.25));
+          } else if (state.noiseGate === 'pulse') {
+            noiseGain.gain.setValueAtTime(state.noiseLevel * 0.6, now);
+            const steps = Math.max(2, Math.floor(dur * 6));
+            for (let s = 1; s <= steps; s++) {
+              const t = now + (s / steps) * dur;
+              const lvl = (s % 2 === 0 ? 1.0 : 0.2) * state.noiseLevel;
+              noiseGain.gain.linearRampToValueAtTime(Math.max(0.001, lvl), t);
+            }
+          } else {
+            noiseGain.gain.setValueAtTime(state.noiseLevel, now);
+          }
+
+          noiseSrc.connect(noiseFilter);
+          noiseFilter.connect(noiseGain);
+          noiseGain.connect(filter);
+
+          noiseSrc.start(now);
+          noiseSrc.stop(now + dur + 0.05);
+        }
+
+        // Distortion / Drive
+        const shaper = ctx.createWaveShaper();
+        shaper.curve = createDriveCurve(state.drive);
+        shaper.oversample = '2x';
+
+        // Dry / Wet Effects Bus
+        const dryGain = ctx.createGain();
+        dryGain.gain.setValueAtTime(1.0, now);
+
+        const delayNode = ctx.createDelay(2.0);
+        delayNode.delayTime.setValueAtTime(state.delayTime, now);
+        const delayFb = ctx.createGain();
+        delayFb.gain.setValueAtTime(state.delayFeedback, now);
+        const delayWet = ctx.createGain();
+        delayWet.gain.setValueAtTime(state.delayMix, now);
+
+        delayNode.connect(delayFb);
+        delayFb.connect(delayNode);
+        delayNode.connect(delayWet);
+
+        const convolver = ctx.createConvolver();
+        convolver.buffer = createReverbImpulse(ctx, state.reverbDecay, 2.2);
+        const reverbWet = ctx.createGain();
+        reverbWet.gain.setValueAtTime(state.reverbMix, now);
+
+        filter.connect(ampEnv);
+        ampEnv.connect(shaper);
+
+        shaper.connect(dryGain);
+        dryGain.connect(masterBus);
+
+        shaper.connect(delayNode);
+        delayWet.connect(masterBus);
+
+        shaper.connect(convolver);
+        convolver.connect(reverbWet);
+        reverbWet.connect(masterBus);
+
+        osc1.start(now);
+        osc2.start(now);
+        lfo.start(now);
+
+        osc1.stop(now + dur + 0.05);
+        osc2.stop(now + dur + 0.05);
+        lfo.stop(now + dur + 0.05);
+
+        return masterBus;
+      }
+
+      // =====================================================================
+      // 6. PLAYBACK & OFFLINE WAV EXPORT
+      // =====================================================================
+      let liveCtx = null;
+      let analyser = null;
+      let scopeAnimId = null;
+      let playbackTimer = null;
+
+      function stopSound() {
+        if (playbackTimer) {
+          clearTimeout(playbackTimer);
+          playbackTimer = null;
+        }
+        if (scopeAnimId) {
+          cancelAnimationFrame(scopeAnimId);
+          scopeAnimId = null;
+        }
+        if (liveCtx && liveCtx.state !== 'closed') {
+          liveCtx.close().catch(() => {});
+          liveCtx = null;
+        }
+        analyser = null;
+        state.isPlaying = false;
+        updateHearButtonUI();
+        if (state.lastRenderedBuffer) {
+          drawStaticVisualizers(state.lastRenderedBuffer);
+        }
+      }
+
+      async function playSound() {
+        stopSound();
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          liveCtx = new AudioCtx({ sampleRate: state.sampleRate });
+          if (liveCtx.state === 'suspended') {
+            await liveCtx.resume();
+          }
+
+          const synthOut = buildSynthGraph(liveCtx, state.duration);
+          analyser = liveCtx.createAnalyser();
+          analyser.fftSize = 1024;
+          analyser.smoothingTimeConstant = 0.82;
+
+          synthOut.connect(analyser);
+          analyser.connect(liveCtx.destination);
+
+          state.isPlaying = true;
+          updateHearButtonUI();
+          startLiveVisualizers();
+
+          renderOfflineAudio().catch(() => {});
+
+          playbackTimer = setTimeout(() => {
+            if (state.loop) {
+              playSound();
+            } else {
+              stopSound();
+            }
+          }, state.duration * 1000 + 80);
+        } catch (err) {
+          stopSound();
+          showToast(`Audio playback error: ${err.message}`, 'error');
+        }
+      }
+
+      function updateHearButtonUI() {
+        if (state.isPlaying) {
+          els.playSvg.classList.add('hidden');
+          els.stopSvg.classList.remove('hidden');
+          els.hearSoundLabel.textContent = 'Stop Sound';
+          els.hearSoundBtn.className = 'flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-400 hover:to-orange-400 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-rose-500/25 transition active:scale-95';
+          els.livePulseDot.classList.add('animate-ping');
+        } else {
+          els.playSvg.classList.remove('hidden');
+          els.stopSvg.classList.add('hidden');
+          els.hearSoundLabel.textContent = 'Hear Sound';
+          els.hearSoundBtn.className = 'flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-400 to-cyan-400 hover:from-sky-300 hover:to-cyan-300 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-sky-500/25 transition active:scale-95';
+          els.livePulseDot.classList.remove('animate-ping');
+        }
+      }
+
+      async function renderOfflineAudio() {
+        const frames = Math.max(64, Math.floor(state.sampleRate * state.duration));
+        const offCtx = new OfflineAudioContext(2, frames, state.sampleRate);
+        const out = buildSynthGraph(offCtx, state.duration);
+        out.connect(offCtx.destination);
+
+        const rendered = await offCtx.startRendering();
+        state.lastRenderedBuffer = rendered;
+
+        let peak = 0;
+        for (let c = 0; c < rendered.numberOfChannels; c++) {
+          const ch = rendered.getChannelData(c);
+          for (let i = 0; i < ch.length; i++) {
+            const a = Math.abs(ch[i]);
+            if (a > peak) peak = a;
+          }
+        }
+        els.peakDbBadge.textContent = peak > 0.00001 ? `Peak: ${(20 * Math.log10(peak)).toFixed(1)} dB` : 'Peak: -∞ dB';
+
+        if (!state.isPlaying) {
+          drawStaticVisualizers(rendered);
+        }
+        return rendered;
+      }
+
+      function encodeWavBlob(audioBuf, bitDepth) {
+        const numCh = audioBuf.numberOfChannels;
+        const sr = audioBuf.sampleRate;
+        const frames = audioBuf.length;
+        const bytesPerSample = bitDepth === 32 ? 4 : 2;
+        const format = bitDepth === 32 ? 3 : 1;
+        const blockAlign = numCh * bytesPerSample;
+        const byteRate = sr * blockAlign;
+        const dataSize = frames * blockAlign;
+
+        const arrayBuf = new ArrayBuffer(44 + dataSize);
+        const view = new DataView(arrayBuf);
+
+        const writeStr = (off, s) => {
+          for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i));
+        };
+
+        writeStr(0, 'RIFF');
+        view.setUint32(4, 36 + dataSize, true);
+        writeStr(8, 'WAVE');
+        writeStr(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, format, true);
+        view.setUint16(22, numCh, true);
+        view.setUint32(24, sr, true);
+        view.setUint32(28, byteRate, true);
+        view.setUint16(32, blockAlign, true);
+        view.setUint16(34, bitDepth, true);
+        writeStr(36, 'data');
+        view.setUint32(40, dataSize, true);
+
+        const chData = [];
+        for (let c = 0; c < numCh; c++) chData.push(audioBuf.getChannelData(c));
+
+        let pos = 44;
+        if (bitDepth === 32) {
+          for (let i = 0; i < frames; i++) {
+            for (let c = 0; c < numCh; c++) {
+              view.setFloat32(pos, chData[c][i], true);
+              pos += 4;
+            }
+          }
+        } else {
+          for (let i = 0; i < frames; i++) {
+            for (let c = 0; c < numCh; c++) {
+              const s = Math.max(-1, Math.min(1, chData[c][i]));
+              view.setInt16(pos, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+              pos += 2;
+            }
+          }
+        }
+
+        return new Blob([arrayBuf], { type: 'audio/wav' });
+      }
+
+      async function downloadWav() {
+        try {
+          const rendered = await renderOfflineAudio();
+          const blob = encodeWavBlob(rendered, state.bitDepth);
+          const url = URL.createObjectURL(blob);
+          const stamp = new Date().toISOString().slice(11, 19).replace(/:/g, '-');
+          const filename = `omnisynth_${state.activeMacroId}_${state.bitDepth}bit_${stamp}.wav`;
+
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 250);
+
+          showToast(`Exported ${filename}`, 'success');
+        } catch (err) {
+          showToast(`WAV export failed: ${err.message}`, 'error');
+        }
+      }
+
+      // =====================================================================
+      // 7. INTERACTIVE CANVASES (CUSTOM WAVE PAD, PITCH CURVE, ADSR, SCOPES)
+      // =====================================================================
+      function prepCanvas(canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = Math.max(10, Math.floor(rect.width * dpr));
+        const h = Math.max(10, Math.floor(rect.height * dpr));
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+        }
+        return { w, h, dpr };
+      }
+
+      function drawCustomWavePad() {
+        const { w, h, dpr } = prepCanvas(els.customWaveCanvas);
+        const ctx = els.customWaveCanvas.getContext('2d');
+        ctx.clearRect(0, 0, w, h);
+
+        ctx.strokeStyle = 'rgba(55, 72, 102, 0.35)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, h / 2);
+        ctx.lineTo(w, h / 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = Math.max(2, dpr * 1.4);
+        ctx.beginPath();
+        for (let i = 0; i < WAVE_TABLE_LEN; i++) {
+          const x = (i / (WAVE_TABLE_LEN - 1)) * w;
+          const y = h / 2 - state.customCycle[i] * (h * 0.42);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      function drawPitchCurvePad() {
+        const { w, h, dpr } = prepCanvas(els.pitchCurveCanvas);
+        const ctx = els.pitchCurveCanvas.getContext('2d');
+        ctx.clearRect(0, 0, w, h);
+
+        ctx.strokeStyle = 'rgba(55, 72, 102, 0.35)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, h / 2);
+        ctx.lineTo(w, h / 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = Math.max(2, dpr * 1.5);
+        ctx.beginPath();
+        for (let i = 0; i < CURVE_POINTS; i++) {
+          const x = (i / (CURVE_POINTS - 1)) * w;
+          const y = h - state.pitchCurve[i] * (h * 0.84) - h * 0.08;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      function drawAdsrPad() {
+        const { w, h, dpr } = prepCanvas(els.adsrCanvas);
+        const ctx = els.adsrCanvas.getContext('2d');
+        ctx.clearRect(0, 0, w, h);
+
+        const total = Math.max(0.2, state.attack + state.decay + state.release + 0.25);
+        const aX = (state.attack / total) * w * 0.85;
+        const dX = aX + (state.decay / total) * w * 0.85;
+        const rW = (state.release / total) * w * 0.85;
+        const sEndX = Math.max(dX + 8, w - rW);
+        const sY = h - state.sustain * (h * 0.82) - h * 0.08;
+        const topY = h * 0.10;
+        const botY = h * 0.92;
+
+        ctx.beginPath();
+        ctx.moveTo(0, botY);
+        ctx.lineTo(aX, topY);
+        ctx.lineTo(dX, sY);
+        ctx.lineTo(sEndX, sY);
+        ctx.lineTo(Math.min(w, sEndX + rW), botY);
+        ctx.closePath();
+
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.16)';
+        ctx.fill();
+
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = Math.max(2, dpr * 1.4);
+        ctx.beginPath();
+        ctx.moveTo(0, botY);
+        ctx.lineTo(aX, topY);
+        ctx.lineTo(dX, sY);
+        ctx.lineTo(sEndX, sY);
+        ctx.lineTo(Math.min(w, sEndX + rW), botY);
+        ctx.stroke();
+      }
+
+      function drawStaticVisualizers(audioBuf) {
+        const left = audioBuf.getChannelData(0);
+
+        const sc = prepCanvas(els.liveScopeCanvas);
+        const sCtx = els.liveScopeCanvas.getContext('2d');
+        sCtx.clearRect(0, 0, sc.w, sc.h);
+        sCtx.strokeStyle = '#38bdf8';
+        sCtx.lineWidth = Math.max(1.5, sc.dpr * 1.2);
+        sCtx.beginPath();
+        for (let px = 0; px < sc.w; px++) {
+          const idx = Math.floor((px / sc.w) * left.length);
+          const y = sc.h / 2 - left[idx] * (sc.h * 0.44);
+          if (px === 0) sCtx.moveTo(px, y);
+          else sCtx.lineTo(px, y);
+        }
+        sCtx.stroke();
+
+        const sp = prepCanvas(els.liveSpectrumCanvas);
+        const fCtx = els.liveSpectrumCanvas.getContext('2d');
+        fCtx.clearRect(0, 0, sp.w, sp.h);
+        const bins = 48;
+        const fftSize = 128;
+        const start = Math.floor(left.length * 0.2);
+        let maxM = 0.0001;
+        const mags = new Float32Array(bins);
+        for (let k = 1; k <= bins; k++) {
+          let re = 0, im = 0;
+          const fb = Math.pow(k / bins, 1.5) * (fftSize / 2);
+          for (let n = 0; n < fftSize && start + n < left.length; n++) {
+            const ang = (2 * Math.PI * fb * n) / fftSize;
+            re += left[start + n] * Math.cos(ang);
+            im -= left[start + n] * Math.sin(ang);
+          }
+          const m = Math.hypot(re, im);
+          mags[k - 1] = m;
+          if (m > maxM) maxM = m;
+        }
+        const bw = sp.w / bins;
+        fCtx.fillStyle = '#c084fc';
+        for (let b = 0; b < bins; b++) {
+          const bh = Math.max(2, Math.pow(mags[b] / maxM, 0.55) * sp.h * 0.85);
+          fCtx.fillRect(b * bw + 1, sp.h - bh, Math.max(1.5, bw - 2), bh);
+        }
+      }
+
+      function startLiveVisualizers() {
+        if (!analyser) return;
+        const tData = new Uint8Array(analyser.fftSize);
+        const fData = new Uint8Array(analyser.frequencyBinCount);
+
+        const loop = () => {
+          if (!state.isPlaying || !analyser) return;
+          scopeAnimId = requestAnimationFrame(loop);
+
+          analyser.getByteTimeDomainData(tData);
+          analyser.getByteFrequencyData(fData);
+
+          const sc = prepCanvas(els.liveScopeCanvas);
+          const sCtx = els.liveScopeCanvas.getContext('2d');
+          sCtx.clearRect(0, 0, sc.w, sc.h);
+          sCtx.strokeStyle = '#38bdf8';
+          sCtx.lineWidth = Math.max(1.8, sc.dpr * 1.4);
+          sCtx.beginPath();
+          for (let i = 0; i < tData.length; i++) {
+            const x = (i / (tData.length - 1)) * sc.w;
+            const y = sc.h / 2 - ((tData[i] - 128) / 128) * (sc.h * 0.44);
+            if (i === 0) sCtx.moveTo(x, y);
+            else sCtx.lineTo(x, y);
+          }
+          sCtx.stroke();
+
+          const sp = prepCanvas(els.liveSpectrumCanvas);
+          const fCtx = els.liveSpectrumCanvas.getContext('2d');
+          fCtx.clearRect(0, 0, sp.w, sp.h);
+          const bins = 48;
+          const bw = sp.w / bins;
+          fCtx.fillStyle = '#c084fc';
+          for (let b = 0; b < bins; b++) {
+            const idx = Math.floor(Math.pow(b / bins, 1.5) * (fData.length * 0.65));
+            const bh = Math.max(2, (fData[idx] / 255) * sp.h * 0.9);
+            fCtx.fillRect(b * bw + 1, sp.h - bh, Math.max(1.5, bw - 2), bh);
+          }
+        };
+        loop();
+      }
+
+      function attachPointerDraw(canvas, onPointerSample) {
+        let drawing = false;
+        const handle = (clientX, clientY) => {
+          const rect = canvas.getBoundingClientRect();
+          const u = Math.max(0, Math.min(1, (clientX - rect.left) / Math.max(1, rect.width)));
+          const v = Math.max(0, Math.min(1, 1 - (clientY - rect.top) / Math.max(1, rect.height)));
+          onPointerSample(u, v);
+        };
+
+        canvas.addEventListener('pointerdown', (e) => {
+          drawing = true;
+          canvas.setPointerCapture(e.pointerId);
+          handle(e.clientX, e.clientY);
+        });
+        canvas.addEventListener('pointermove', (e) => {
+          if (!drawing) return;
+          handle(e.clientX, e.clientY);
+        });
+        const end = (e) => {
+          if (!drawing) return;
+          drawing = false;
+          try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+          renderOfflineAudio().catch(() => {});
+        };
+        canvas.addEventListener('pointerup', end);
+        canvas.addEventListener('pointercancel', end);
+      }
+
+      attachPointerDraw(els.customWaveCanvas, (u, v) => {
+        const idx = Math.min(WAVE_TABLE_LEN - 1, Math.floor(u * WAVE_TABLE_LEN));
+        state.customCycle[idx] = v * 2 - 1;
+        drawCustomWavePad();
+      });
+
+      attachPointerDraw(els.pitchCurveCanvas, (u, v) => {
+        const idx = Math.min(CURVE_POINTS - 1, Math.floor(u * CURVE_POINTS));
+        state.pitchCurve[idx] = v;
+        drawPitchCurvePad();
+      });
+
+      // =====================================================================
+      // 8. UI SYNCHRONIZATION & EVENT WIRING
+      // =====================================================================
+      function syncAllControlsFromState() {
+        els.osc1Waves.forEach(btn => {
+          const active = btn.dataset.wave === state.osc1Wave;
+          btn.className = active
+            ? 'osc1-wave py-1.5 rounded-lg text-[11px] font-semibold border transition bg-sky-500/20 border-sky-400 text-sky-200'
+            : 'osc1-wave py-1.5 rounded-lg text-[11px] font-semibold border transition bg-synth-850 border-synth-700 text-slate-300 hover:bg-synth-800';
+        });
+        els.osc2Waves.forEach(btn => {
+          const active = btn.dataset.wave === state.osc2Wave;
+          btn.className = active
+            ? 'osc2-wave py-1.5 rounded-lg text-[11px] font-semibold border transition bg-indigo-500/20 border-indigo-400 text-indigo-200'
+            : 'osc2-wave py-1.5 rounded-lg text-[11px] font-semibold border transition bg-synth-850 border-synth-700 text-slate-300 hover:bg-synth-800';
+        });
+
+        els.osc1PulseBox.classList.toggle('hidden', state.osc1Wave !== 'pulse');
+        els.osc1PulseBox.classList.toggle('flex', state.osc1Wave === 'pulse');
+        els.osc2PulseBox.classList.toggle('hidden', state.osc2Wave !== 'pulse');
+        els.osc2PulseBox.classList.toggle('flex', state.osc2Wave === 'pulse');
+
+        els.osc1Level.value = Math.round(state.osc1Level * 100);
+        els.osc1LevelVal.textContent = `${Math.round(state.osc1Level * 100)}%`;
+        els.osc1Detune.value = state.osc1Detune;
+        els.osc1DetuneVal.textContent = `${state.osc1Detune > 0 ? '+' : ''}${state.osc1Detune} ct`;
+        els.osc1Octave.value = state.osc1Octave;
+        els.osc1OctaveVal.textContent = `${state.osc1Octave > 0 ? '+' : ''}${state.osc1Octave}`;
+        els.osc1Semi.value = state.osc1Semi;
+        els.osc1SemiVal.textContent = `${state.osc1Semi > 0 ? '+' : ''}${state.osc1Semi} st`;
+        els.osc1Pulse.value = Math.round(state.osc1Pulse * 100);
+        els.osc1PulseVal.textContent = `${Math.round(state.osc1Pulse * 100)}%`;
+
+        els.osc2Level.value = Math.round(state.osc2Level * 100);
+        els.osc2LevelVal.textContent = `${Math.round(state.osc2Level * 100)}%`;
+        els.osc2Detune.value = state.osc2Detune;
+        els.osc2DetuneVal.textContent = `${state.osc2Detune > 0 ? '+' : ''}${state.osc2Detune} ct`;
+        els.osc2Octave.value = state.osc2Octave;
+        els.osc2OctaveVal.textContent = `${state.osc2Octave > 0 ? '+' : ''}${state.osc2Octave}`;
+        els.osc2Semi.value = state.osc2Semi;
+        els.osc2SemiVal.textContent = `${state.osc2Semi > 0 ? '+' : ''}${state.osc2Semi} st`;
+        els.osc2Pulse.value = Math.round(state.osc2Pulse * 100);
+        els.osc2PulseVal.textContent = `${Math.round(state.osc2Pulse * 100)}%`;
+
+        els.osc1HzBadge.textContent = `${getEffectiveBaseFreq(state.osc1Octave, state.osc1Semi, state.baseFreq).toFixed(1)} Hz`;
+        els.osc2HzBadge.textContent = `${getEffectiveBaseFreq(state.osc2Octave, state.osc2Semi, state.baseFreq).toFixed(1)} Hz`;
+
+        els.basePitchSlider.value = Math.max(30, Math.min(1500, state.baseFreq));
+        els.basePitchInput.value = Number(state.baseFreq.toFixed(2));
+        els.basePitchVal.textContent = `${Math.round(state.baseFreq)} Hz`;
+        els.pitchSpanSlider.value = state.pitchSpanSemitones;
+        els.pitchSpanVal.textContent = `±${state.pitchSpanSemitones} st`;
+
+        els.lfoTargetSelect.value = state.lfoTarget;
+        els.lfoWaveSelect.value = state.lfoWave;
+        els.lfoRateSlider.value = state.lfoRate;
+        els.lfoRateVal.textContent = `${state.lfoRate.toFixed(1)}Hz`;
+        els.lfoDepthSlider.value = Math.round(state.lfoDepth * 100);
+        els.lfoDepthVal.textContent = `${Math.round(state.lfoDepth * 100)}%`;
+
+        els.ftypeBtns.forEach(btn => {
+          const active = btn.dataset.ftype === state.filterType;
+          btn.className = active
+            ? 'ftype-btn px-2 py-1 rounded-md text-[10px] font-mono font-semibold border bg-emerald-500/20 border-emerald-400 text-emerald-200'
+            : 'ftype-btn px-2 py-1 rounded-md text-[10px] font-mono font-semibold border bg-synth-850 border-synth-700 text-slate-400';
+        });
+        els.filterCutoffSlider.value = state.filterCutoff;
+        els.filterCutoffVal.textContent = state.filterCutoff >= 1000 ? `${(state.filterCutoff / 1000).toFixed(1)}kHz` : `${Math.round(state.filterCutoff)}Hz`;
+        els.filterQSlider.value = state.filterQ;
+        els.filterQVal.textContent = state.filterQ.toFixed(1);
+        els.filterEnvSlider.value = Math.round(state.filterEnvAmount * 100);
+        els.filterEnvVal.textContent = `${state.filterEnvAmount >= 0 ? '+' : ''}${Math.round(state.filterEnvAmount * 100)}%`;
+
+        els.noiseColorSelect.value = state.noiseColor;
+        els.noiseLevelSlider.value = Math.round(state.noiseLevel * 100);
+        els.noiseLevelVal.textContent = `${Math.round(state.noiseLevel * 100)}%`;
+        els.noiseCutoffSlider.value = state.noiseCutoff;
+        els.noiseCutoffVal.textContent = state.noiseCutoff >= 1000 ? `${(state.noiseCutoff / 1000).toFixed(1)}kHz` : `${Math.round(state.noiseCutoff)}Hz`;
+        els.noiseGateSelect.value = state.noiseGate;
+
+        els.adsrASlider.value = state.attack;
+        els.adsrAVal.textContent = `${state.attack.toFixed(2)}s`;
+        els.adsrDSlider.value = state.decay;
+        els.adsrDVal.textContent = `${state.decay.toFixed(2)}s`;
+        els.adsrSSlider.value = Math.round(state.sustain * 100);
+        els.adsrSVal.textContent = `${Math.round(state.sustain * 100)}%`;
+        els.adsrRSlider.value = state.release;
+        els.adsrRVal.textContent = `${state.release.toFixed(2)}s`;
+
+        els.durationSlider.value = state.duration;
+        els.durationVal.textContent = `${state.duration.toFixed(2)}s`;
+        els.masterGainSlider.value = Math.round(state.masterGain * 100);
+        els.masterGainVal.textContent = `${Math.round(state.masterGain * 100)}%`;
+
+        els.driveSlider.value = Math.round(state.drive * 100);
+        els.driveVal.textContent = `${Math.round(state.drive * 100)}%`;
+        els.delayMixSlider.value = Math.round(state.delayMix * 100);
+        els.delayMixVal.textContent = `${Math.round(state.delayMix * 100)}%`;
+        els.delayTimeSlider.value = state.delayTime;
+        els.delayTimeVal.textContent = `${state.delayTime.toFixed(2)}s`;
+        els.delayFbSlider.value = Math.round(state.delayFeedback * 100);
+        els.delayFbVal.textContent = `${Math.round(state.delayFeedback * 100)}%`;
+        els.reverbMixSlider.value = Math.round(state.reverbMix * 100);
+        els.reverbMixVal.textContent = `${Math.round(state.reverbMix * 100)}%`;
+        els.reverbDecaySlider.value = state.reverbDecay;
+        els.reverbDecayVal.textContent = `${state.reverbDecay.toFixed(1)}s`;
+
+        document.querySelectorAll('.macro-pill').forEach(p => {
+          const active = p.dataset.macro === state.activeMacroId;
+          p.className = active
+            ? 'macro-pill px-3 py-1.5 rounded-xl text-xs font-semibold border transition bg-fuchsia-500/20 border-fuchsia-400 text-fuchsia-200'
+            : 'macro-pill px-3 py-1.5 rounded-xl text-xs font-medium border transition bg-synth-850 hover:bg-synth-800 border-synth-700 text-slate-300';
+        });
+
+        drawCustomWavePad();
+        drawPitchCurvePad();
+        drawAdsrPad();
+      }
+
+      MACROS.forEach(m => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.macro = m.id;
+        btn.textContent = m.label;
+        btn.className = 'macro-pill px-3 py-1.5 rounded-xl text-xs font-medium border transition bg-synth-850 hover:bg-synth-800 border-synth-700 text-slate-300';
+        btn.addEventListener('click', () => {
+          state.activeMacroId = m.id;
+          m.apply();
+          syncAllControlsFromState();
+          renderOfflineAudio().catch(() => {});
+          showToast(`Macro loaded: ${m.label}`, 'info');
+        });
+        els.macroStrip.appendChild(btn);
+      });
+
+      els.osc1Waves.forEach(b => b.addEventListener('click', () => {
+        state.osc1Wave = b.dataset.wave;
+        syncAllControlsFromState();
+        renderOfflineAudio().catch(() => {});
+      }));
+      els.osc2Waves.forEach(b => b.addEventListener('click', () => {
+        state.osc2Wave = b.dataset.wave;
+        syncAllControlsFromState();
+        renderOfflineAudio().catch(() => {});
+      }));
+
+      const bindSlider = (el, setter) => {
+        el.addEventListener('input', () => {
+          setter(parseFloat(el.value));
+          syncAllControlsFromState();
+        });
+        el.addEventListener('change', () => {
+          renderOfflineAudio().catch(() => {});
+        });
+      };
+
+      bindSlider(els.osc1Level, v => { state.osc1Level = v / 100; });
+      bindSlider(els.osc1Detune, v => { state.osc1Detune = v; });
+      bindSlider(els.osc1Octave, v => { state.osc1Octave = v; });
+      bindSlider(els.osc1Semi, v => { state.osc1Semi = v; });
+      bindSlider(els.osc1Pulse, v => { state.osc1Pulse = v / 100; });
+
+      bindSlider(els.osc2Level, v => { state.osc2Level = v / 100; });
+      bindSlider(els.osc2Detune, v => { state.osc2Detune = v; });
+      bindSlider(els.osc2Octave, v => { state.osc2Octave = v; });
+      bindSlider(els.osc2Semi, v => { state.osc2Semi = v; });
+      bindSlider(els.osc2Pulse, v => { state.osc2Pulse = v / 100; });
+
+      bindSlider(els.basePitchSlider, v => { state.baseFreq = v; });
+      els.basePitchInput.addEventListener('input', () => {
+        const parsed = parseFloat(els.basePitchInput.value);
+        if (Number.isFinite(parsed) && parsed >= 20 && parsed <= 4000) {
+          state.baseFreq = parsed;
+          els.basePitchSlider.value = Math.max(30, Math.min(1500, parsed));
+          els.basePitchVal.textContent = `${Math.round(state.baseFreq)} Hz`;
+          els.osc1HzBadge.textContent = `${getEffectiveBaseFreq(state.osc1Octave, state.osc1Semi, state.baseFreq).toFixed(1)} Hz`;
+          els.osc2HzBadge.textContent = `${getEffectiveBaseFreq(state.osc2Octave, state.osc2Semi, state.baseFreq).toFixed(1)} Hz`;
+        }
+      });
+      els.basePitchInput.addEventListener('change', () => {
+        const parsed = parseFloat(els.basePitchInput.value);
+        state.baseFreq = Number.isFinite(parsed) ? Math.max(20, Math.min(4000, parsed)) : 220;
+        syncAllControlsFromState();
+        renderOfflineAudio().catch(() => {});
+      });
+
+      bindSlider(els.pitchSpanSlider, v => { state.pitchSpanSemitones = v; });
+
+      els.lfoTargetSelect.addEventListener('change', e => { state.lfoTarget = e.target.value; renderOfflineAudio().catch(() => {}); });
+      els.lfoWaveSelect.addEventListener('change', e => { state.lfoWave = e.target.value; renderOfflineAudio().catch(() => {}); });
+      bindSlider(els.lfoRateSlider, v => { state.lfoRate = v; });
+      bindSlider(els.lfoDepthSlider, v => { state.lfoDepth = v / 100; });
+
+      els.ftypeBtns.forEach(b => b.addEventListener('click', () => {
+        state.filterType = b.dataset.ftype;
+        syncAllControlsFromState();
+        renderOfflineAudio().catch(() => {});
+      }));
+      bindSlider(els.filterCutoffSlider, v => { state.filterCutoff = v; });
+      bindSlider(els.filterQSlider, v => { state.filterQ = v; });
+      bindSlider(els.filterEnvSlider, v => { state.filterEnvAmount = v / 100; });
+
+      els.noiseColorSelect.addEventListener('change', e => { state.noiseColor = e.target.value; renderOfflineAudio().catch(() => {}); });
+      bindSlider(els.noiseLevelSlider, v => { state.noiseLevel = v / 100; });
+      bindSlider(els.noiseCutoffSlider, v => { state.noiseCutoff = v; });
+      els.noiseGateSelect.addEventListener('change', e => { state.noiseGate = e.target.value; renderOfflineAudio().catch(() => {}); });
+
+      bindSlider(els.adsrASlider, v => { state.attack = v; });
+      bindSlider(els.adsrDSlider, v => { state.decay = v; });
+      bindSlider(els.adsrSSlider, v => { state.sustain = v / 100; });
+      bindSlider(els.adsrRSlider, v => { state.release = v; });
+      bindSlider(els.durationSlider, v => { state.duration = v; });
+      bindSlider(els.masterGainSlider, v => { state.masterGain = v / 100; });
+
+      els.sampleRateSelect.addEventListener('change', e => { state.sampleRate = Number(e.target.value); renderOfflineAudio().catch(() => {}); });
+      els.bitDepthSelect.addEventListener('change', e => { state.bitDepth = Number(e.target.value); });
+
+      bindSlider(els.driveSlider, v => { state.drive = v / 100; });
+      bindSlider(els.delayMixSlider, v => { state.delayMix = v / 100; });
+      bindSlider(els.delayTimeSlider, v => { state.delayTime = v; });
+      bindSlider(els.delayFbSlider, v => { state.delayFeedback = v / 100; });
+      bindSlider(els.reverbMixSlider, v => { state.reverbMix = v / 100; });
+      bindSlider(els.reverbDecaySlider, v => { state.reverbDecay = v; });
+
+      els.resetDrawBtn.addEventListener('click', () => {
+        resetCustomCycleToSine();
+        drawCustomWavePad();
+        renderOfflineAudio().catch(() => {});
+      });
+
+      els.smoothDrawBtn.addEventListener('click', () => {
+        const copy = new Float32Array(state.customCycle);
+        for (let i = 1; i < WAVE_TABLE_LEN - 1; i++) {
+          state.customCycle[i] = (copy[i - 1] + copy[i] * 2 + copy[i + 1]) / 4;
+        }
+        drawCustomWavePad();
+        renderOfflineAudio().catch(() => {});
+      });
+
+      els.resetPitchCurveBtn.addEventListener('click', () => {
+        state.pitchCurve.fill(0.5);
+        drawPitchCurvePad();
+        renderOfflineAudio().catch(() => {});
+      });
+
+      els.loopBtn.addEventListener('click', () => {
+        state.loop = !state.loop;
+        els.loopLabel.textContent = `Loop: ${state.loop ? 'On' : 'Off'}`;
+        if (state.loop) {
+          els.loopBtn.classList.add('border-sky-400', 'text-sky-300', 'bg-sky-500/15');
+        } else {
+          els.loopBtn.classList.remove('border-sky-400', 'text-sky-300', 'bg-sky-500/15');
+        }
+      });
+
+      els.hearSoundBtn.addEventListener('click', () => {
+        if (state.isPlaying) {
+          stopSound();
+        } else {
+          playSound();
+        }
+      });
+
+      els.downloadWavBtn.addEventListener('click', downloadWav);
+
+      window.addEventListener('resize', () => {
+        drawCustomWavePad();
+        drawPitchCurvePad();
+        drawAdsrPad();
+        if (!state.isPlaying && state.lastRenderedBuffer) {
+          drawStaticVisualizers(state.lastRenderedBuffer);
+        }
+      });
+
+      window.addEventListener('DOMContentLoaded', () => {
+        MACROS[0].apply();
+        syncAllControlsFromState();
+        renderOfflineAudio().catch(() => {});
+      });
+    })();
+  </script>
+</body>
+</html>
